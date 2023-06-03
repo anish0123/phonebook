@@ -1,16 +1,30 @@
-require('dotenv').config();
+require("dotenv").config();
 const express = require("express");
 const morgan = require("morgan");
 const cors = require("cors");
-const PhoneBook = require("./models/phoneNumber");
-const {default: mongoose} = require('mongoose');
-
 const app = express();
+const PhoneBook = require("./models/phoneNumber");
 
-app.use(express.json());
 app.use(cors());
+app.use(express.json());
 app.use(express.static("build"));
 
+const errorHandler = (error, request, response, next) => {
+  console.log(error.message);
+
+  if (error.name === "CastError") {
+    return response.status(400).send({ error: "malformatted id" });
+  }
+  next(error);
+};
+
+const unknownEndpoint = (request, response) => {
+  response.status(404).send({ error: "unknown endpoint" });
+};
+
+app.use(cors());
+app.use(express.json());
+app.use(express.static("build"));
 app.use(
   morgan(function (tokens, req, res) {
     return [
@@ -31,7 +45,7 @@ app.get("/persons", (request, response) => {
 });
 
 app.get("/api/persons", (request, response) => {
-  PhoneBook.find({}).then(numbers => {
+  PhoneBook.find({}).then((numbers) => {
     response.json(numbers);
   });
 });
@@ -39,22 +53,30 @@ app.get("/api/persons", (request, response) => {
 app.get("/info", (request, response) => {
   const date = new Date();
   console.log(date.toString());
-   PhoneBook.find({}).then(numbers => {
+  PhoneBook.find({}).then((numbers) => {
     response.send(`<p>Phonebook has info for ${numbers.length} people</p>
     <p>${date}`);
   });
 });
 
-app.get("/api/persons/:id", (request, response) => {
-  PhoneBook.findById(request.params.id).then(number => {
-    response.json(number)
-  })
+app.get("/api/persons/:id", (request, response, next) => {
+  PhoneBook.findById(request.params.id)
+    .then((number) => {
+      if (number) {
+        response.status(204).end();
+      } else {
+        response.status(404).end();
+      }
+    })
+    .catch((error) => next(error));
 });
 
-app.delete("/api/persons/:id", (request, response) => {
-  const id = Number(request.params.id);
-  persons = persons.filter((person) => person.id !== id);
-  response.json(persons);
+app.delete("/api/persons/:id", (request, response, next) => {
+  PhoneBook.findByIdAndDelete(request.params.id)
+    .then((result) => {
+      response.status(204).end()
+    })
+    .catch((error) => next(error));
 });
 
 app.post("/api/persons", (request, response) => {
@@ -65,14 +87,15 @@ app.post("/api/persons", (request, response) => {
     });
   } else {
     const phoneBook = new PhoneBook({
-      name : body.name,
-      number : body.number
-    })
-    phoneBook.save().then(numbers =>
-      response.json(numbers))
-
+      name: body.name,
+      number: body.number,
+    });
+    phoneBook.save().then((numbers) => response.json(numbers));
   }
 });
+
+app.use(unknownEndpoint);
+app.use(errorHandler);
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT);
