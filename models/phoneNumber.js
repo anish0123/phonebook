@@ -1,15 +1,15 @@
-const mongoose = require("mongoose");
+const mongoose = require('mongoose');
 
-mongoose.set("strictQuery", false);
+mongoose.set('strictQuery', false);
 const url = process.env.MONGODB_URI;
 
 mongoose
   .connect(url)
   .then((result) => {
-    console.log("connected to mongodb");
+    console.log('connected to mongodb');
   })
   .catch((error) => {
-    console.log("could not connect to mongodb", error.message);
+    console.log('could not connect to mongodb', error.message);
   });
 
 const phoneBookSchema = new mongoose.Schema({
@@ -31,7 +31,7 @@ const phoneBookSchema = new mongoose.Schema({
   },
 });
 
-phoneBookSchema.set("toJSON", {
+phoneBookSchema.set('toJSON', {
   transform: (document, returnedObject) => {
     returnedObject.id = returnedObject._id.toString();
     delete returnedObject._id;
@@ -39,4 +39,4 @@ phoneBookSchema.set("toJSON", {
   },
 });
 
-module.exports = mongoose.model("PhoneNumber", phoneBookSchema);
+module.exports = mongoose.model('PhoneNumber', phoneBookSchema);
