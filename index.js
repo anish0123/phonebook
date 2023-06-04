@@ -14,6 +14,8 @@ const errorHandler = (error, request, response, next) => {
 
   if (error.name === "CastError") {
     return response.status(400).send({ error: "malformatted id" });
+  } else if (error.name === "ValidationError") {
+    return response.send({ error: error.message });
   }
   next(error);
 };
@@ -63,7 +65,7 @@ app.get("/api/persons/:id", (request, response, next) => {
   PhoneBook.findById(request.params.id)
     .then((number) => {
       if (number) {
-        response.status(204).end();
+        response.json(number);
       } else {
         response.status(404).end();
       }
@@ -74,12 +76,12 @@ app.get("/api/persons/:id", (request, response, next) => {
 app.delete("/api/persons/:id", (request, response, next) => {
   PhoneBook.findByIdAndDelete(request.params.id)
     .then((result) => {
-      response.status(204).end()
+      response.status(204).end();
     })
     .catch((error) => next(error));
 });
 
-app.post("/api/persons", (request, response) => {
+app.post("/api/persons", (request, response, next) => {
   const body = request.body;
   if (!body.name || !body.number) {
     response.status(404).json({
@@ -90,8 +92,36 @@ app.post("/api/persons", (request, response) => {
       name: body.name,
       number: body.number,
     });
-    phoneBook.save().then((numbers) => response.json(numbers));
+    phoneBook
+      .save()
+      .then((numbers) => response.json(numbers))
+      .catch((error) => {
+        console.log(
+          "🚀 ~ file: index.js:101 ~ app.post ~ error:",
+          error.errors
+        );
+        next(error);
+      });
   }
+});
+
+app.put("/api/persons/:id", (request, response, next) => {
+  const body = request.body;
+  console.log("🚀 ~ file: index.js:100 ~ app.put ~ body:", body);
+
+  const phoneBook = {
+    name: body.name,
+    number: body.number,
+  };
+  PhoneBook.findByIdAndUpdate(
+    request.params.id,
+   body,
+    { new: true, runValidators: true, context: "query" }
+  )
+    .then((updatedNumber) => {
+      response.json(updatedNumber);
+    })
+    .catch((error) => next(error));
 });
 
 app.use(unknownEndpoint);
