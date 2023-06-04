@@ -63,7 +63,7 @@ app.get("/api/persons/:id", (request, response, next) => {
   PhoneBook.findById(request.params.id)
     .then((number) => {
       if (number) {
-        response.status(204).end();
+       response.json(number);
       } else {
         response.status(404).end();
       }
@@ -93,6 +93,32 @@ app.post("/api/persons", (request, response) => {
     phoneBook.save().then((numbers) => response.json(numbers));
   }
 });
+
+app.put("/api/persons/:id", (request, response, next) => {
+  
+  const body = request.body;
+  console.log("🚀 ~ file: index.js:100 ~ app.put ~ body:", body)
+  
+  if (!body.name || !body.number) {
+    response.status(404).json({
+      error: "content missing",
+    });
+  } else {
+    const phoneBook = {
+      name: body.name,
+      number: body.number,
+    };
+    console.log("🚀 ~ file: index.js:112 ~ app.put ~ request.params.id:", request.params.id)
+   PhoneBook.findByIdAndUpdate(request.params.id, phoneBook, {new : true})
+   .then(updatedNumber => {
+    response.json(updatedNumber)
+   })
+   .catch(error => next(error))
+  } 
+})
+
+
+
 
 app.use(unknownEndpoint);
 app.use(errorHandler);
